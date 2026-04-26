@@ -142,3 +142,12 @@ docker compose --profile agents up -d
 | `docker-entrypoint.sh` | CUDA pre-flight — falla rápido si GPU en mal estado |
 | `reset-gpu.sh` | Reset GPU en el host sin reboot |
 | `nvidia-gpu-no-railgate.service` | Servicio systemd para deshabilitar railgate al boot |
+
+
+### Prueba el modelo
+
+```bash
+curl http://localhost:8001/v1/chat/completions  -H "Content-Type: application/json"   -d '{"model": "palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4", "messages": [{"role": "user", "content": "Hola!, puedes darme un listado de los discos de michael jackson? quiero una tabla en formato markdown con el nombre y la fecga , respondeme de manera breve"}]}'
+```
+
+** Importante levantar el modelo puede llevar 5 a 10 minutos, sea paciente

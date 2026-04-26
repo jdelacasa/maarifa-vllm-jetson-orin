@@ -1,0 +1,15 @@
+[Unit]
+Description=Disable NVIDIA Jetson GPU railgating for stable CUDA across container restarts
+After=local-fs.target
+Before=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Desactiva el power-gating de la GPU. Sin esto, el driver nvhost puede dejar
+# estado NVML corrupto tras un SIGKILL, rompiendo el siguiente proceso CUDA.
+ExecStart=/bin/sh -c 'echo 0 > /sys/devices/platform/bus@0/17000000.gpu/railgate_enable && echo "GPU railgate disabled" || echo "WARNING: railgate path not found"'
+ExecStop=/bin/sh -c 'echo 1 > /sys/devices/platform/bus@0/17000000.gpu/railgate_enable || true'
+
+[Install]
+WantedBy=multi-user.target

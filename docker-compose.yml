@@ -1,36 +1,35 @@
 services:
 
+
   vllm:
-    image: vllm-jetson:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        VLLM_REPO: https://github.com/vllm-project/vllm.git
-        VLLM_BRANCH: v0.19.0
+    image: jdelacasa/vllm-jetson:0.19.1-torch2.10.0-cu126-l4tr36.4-sm87
     runtime: nvidia
     restart: unless-stopped
+    stop_grace_period: 120s
+    profiles: [agents]
     ports:
-      - "8000:8000"
+      - "8001:8001"
     volumes:
       - ${HF_CACHE_DIR:-~/.cache/huggingface}:/data/huggingface
-      - vllm-compile-cache:/data/vllm-cache
+      - vllm-agents-compile-cache:/data/vllm-cache
       - ./docker-entrypoint.sh:/usr/local/bin/docker-entrypoint.sh:ro
     environment:
       - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
       - VLLM_ENABLE_FUSED_MOE_ACTIVATION_CHUNKING=0
-      - PIP_INSTALL=triton
+      - PIP_INSTALL=triton torchvision --no-deps
     command: >
-      ${MODEL:-Qwen/Qwen3.5-35B-A3B-GPTQ-Int4}
+      palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4
       --host 0.0.0.0
-      --port 8000
+      --port 8001
       --dtype half
-      --gpu-memory-utilization 0.55
+      --gpu-memory-utilization 0.70
       --max-model-len 44000
       --max-num-batched-tokens 44000
-      --max-num-seqs 1
+      --max-num-seqs 4
+      --enable-auto-tool-choice
+      --tool-call-parser hermes
+      --reasoning-parser qwen3
       --no-enable-log-requests
-    #--quantization gptq_marlin
     shm_size: '8gb'
     deploy:
       resources:
@@ -42,3 +41,7 @@ services:
 
 volumes:
   vllm-compile-cache:
+  vllm-agents-compile-cache:
+
+
+## curl http://localhost:8001/v1/chat/completions  -H "Content-Type: application/json"   -d '{"model": "palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4", "messages": [{"role": "user", "content": "Hello!"}]}'

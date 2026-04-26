@@ -23,9 +23,10 @@ services:
       --port 8001
       --dtype half
       --gpu-memory-utilization 0.70
-      --max-model-len 44000
-      --max-num-batched-tokens 44000
+      --max-model-len 64000
+      --max-num-batched-tokens 64000
       --max-num-seqs 4
+      --enable-prefix-caching
       --enable-auto-tool-choice
       --tool-call-parser qwen3_coder
       --reasoning-parser qwen3

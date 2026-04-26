@@ -56,18 +56,122 @@ Con PyTorch 2.10.0 ya disponible en la base, solo son necesarios 4 parches (vs 1
 3. **fp8_quant hasattr guard** — `matcher_utils.py` y `rms_quant_fusion.py`: `per_token_group_fp8_quant` no se compila para sm_87 (requiere sm_89+).
 4. **gdn_linear_attn dynamo guard** — reemplaza `hasattr(self, "in_proj_qkv")` por un flag booleano que torch.compile sí puede guardar.
 
-## Configuración validada (docker-compose)
+## Configuraciones según caso de uso
 
+Flags comunes a todas las configuraciones (no cambiar):
 ```
---dtype half
---gpu-memory-utilization 0.70
---max-model-len 44000
---max-num-batched-tokens 44000
---max-num-seqs 4
+--dtype half                     # float16, más estable que bfloat16 en sm_87
+--tool-call-parser qwen3_coder   # parser correcto para este modelo
+--reasoning-parser qwen3         # maneja bloques <think>...</think>
+--enable-auto-tool-choice
 --no-enable-log-requests
 ```
 
 Sin `--enforce-eager` (CUDA graphs activos). Sin `--quantization` (vLLM detecta gptq_marlin automáticamente).
+
+---
+
+### Caso 1: agentes / uso interactivo (1–2 usuarios)
+
+Prioridad: **mínima latencia por request**. MTP acelera la generación ~1.3–1.4x cuando hay pocas requests simultáneas y la acceptance rate es alta (70–95% observado).
+
+```yaml
+command: >
+  palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4
+  --host 0.0.0.0 --port 8001
+  --dtype half
+  --gpu-memory-utilization 0.70
+  --max-model-len 64000
+  --max-num-batched-tokens 64000
+  --max-num-seqs 4
+  --enable-prefix-caching
+  --speculative-config '{"method":"mtp","num_speculative_tokens":2}'
+  --tool-call-parser qwen3_coder
+  --reasoning-parser qwen3
+  --enable-auto-tool-choice
+  --no-enable-log-requests
+```
+
+Rendimiento observado en Jetson AGX Orin 64GB:
+- Generación: **32–35 t/s** (1 request) / **47–48 t/s** total (2 requests)
+- Prefill: ~350–1000 t/s
+- MTP acceptance rate: 70–95%
+- Memoria: ~50 GB
+
+> ⚠️ Prefix caching con capas Mamba es experimental en vLLM 0.19. Si aparecen
+> respuestas incoherentes en contextos largos, quitar `--enable-prefix-caching`.
+
+---
+
+### Caso 2: muchos usuarios concurrentes (5+ simultáneos)
+
+Prioridad: **máximo throughput total**. Sin MTP — el batch size inflado por los
+draft tokens penaliza cuando hay muchas secuencias activas. Más `--max-num-seqs`
+para saturar bien la GPU con trabajo real.
+
+```yaml
+command: >
+  palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4
+  --host 0.0.0.0 --port 8001
+  --dtype half
+  --gpu-memory-utilization 0.75
+  --max-model-len 32000
+  --max-num-batched-tokens 32000
+  --max-num-seqs 16
+  --enable-prefix-caching
+  --tool-call-parser qwen3_coder
+  --reasoning-parser qwen3
+  --enable-auto-tool-choice
+  --no-enable-log-requests
+```
+
+Diferencias clave vs Caso 1:
+- Sin `--speculative-config` — MTP no ayuda con muchos usuarios concurrentes
+- `--max-num-seqs 16` — más requests en paralelo, mayor throughput total
+- `--max-model-len 32000` — contexto reducido para que quepan más KV slots
+- `--gpu-memory-utilization 0.75` — más presupuesto KV para acomodar 16 seqs
+
+---
+
+### Caso 3: contexto muy largo, un usuario
+
+Prioridad: **máximo contexto posible**. Sin MTP (no ayuda en prefill) y sin
+prefix caching experimental para máxima estabilidad.
+
+```yaml
+command: >
+  palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4
+  --host 0.0.0.0 --port 8001
+  --dtype half
+  --gpu-memory-utilization 0.70
+  --max-model-len 75000
+  --max-num-batched-tokens 75000
+  --max-num-seqs 1
+  --tool-call-parser qwen3_coder
+  --reasoning-parser qwen3
+  --enable-auto-tool-choice
+  --no-enable-log-requests
+```
+
+> ⚠️ El pool KV con MTP activo es ~65–70K tokens. Sin MTP puede llegar a ~77K.
+> Con `--max-model-len 75000` verificar en los logs de arranque que:
+> `GPU KV cache size: XXXXX tokens` sea ≥ 75000. Si no, reducir a 65000.
+>
+> Prefill de 75K tokens ≈ 3–4 minutos a ~350 t/s. Planificar en consecuencia.
+
+---
+
+### Resumen de trade-offs
+
+| | Caso 1 (agentes) | Caso 2 (concurrencia) | Caso 3 (contexto largo) |
+|---|---|---|---|
+| MTP | ✅ sí | ❌ no | ❌ no |
+| Prefix caching | ✅ sí | ✅ sí | ❌ opcional |
+| max-num-seqs | 4 | 16 | 1 |
+| max-model-len | 64K | 32K | 75K |
+| Latencia/req | Baja | Media-alta | Alta (prefill) |
+| Throughput total | Medio | Alto | Bajo |
+| Memoria | ~50 GB | ~48 GB | ~46 GB |
 
 ---
 

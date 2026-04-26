@@ -6,7 +6,7 @@ services:
     runtime: nvidia
     restart: unless-stopped
     stop_grace_period: 120s
-    profiles: [agents]
+    #profiles: [agents]
     ports:
       - "8001:8001"
     volumes:

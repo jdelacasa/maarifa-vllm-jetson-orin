@@ -18,7 +18,7 @@ sha256:4a0975efcb0446e6b439d136804beeeb79c1509d5209dae4f4f6a65b48668a2a
 ## Uso rápido
 
 ```bash
-docker compose --profile agents up -d
+docker compose  up -d
 ```
 
 Variables de entorno en `.env`:

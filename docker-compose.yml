@@ -2,7 +2,8 @@ services:
 
 
   vllm:
-    image: jdelacasa/vllm-jetson:0.19.1-torch2.10.0-cu126-l4tr36.4-sm87
+    #image: jdelacasa/vllm-jetson:0.19.1-torch2.10.0-cu126-l4tr36.4-sm87
+    image: jdelacasa/vllm-jetson:0.20.2-torch2.10.0-cu126-l4tr36.4-sm87
     runtime: nvidia
     restart: unless-stopped
     stop_grace_period: 120s
@@ -16,21 +17,23 @@ services:
     environment:
       - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
       - VLLM_ENABLE_FUSED_MOE_ACTIVATION_CHUNKING=0
+      - VLLM_MARLIN_USE_ATOMIC_ADD=1
       - PIP_INSTALL=triton torchvision --no-deps
     command: >
       palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4
       --host 0.0.0.0
       --port 8001
       --dtype half
-      --gpu-memory-utilization 0.70
-      --max-model-len 64000
+      --gpu-memory-utilization 0.77
+      --max-model-len 128000
       --max-num-batched-tokens 64000
-      --max-num-seqs 4
+      --max-num-seqs 8
       --enable-prefix-caching
       --enable-auto-tool-choice
       --tool-call-parser qwen3_coder
       --reasoning-parser qwen3
       --speculative-config '{"method":"mtp","num_speculative_tokens":2}'
+      --limit-mm-per-prompt '{"image":4}'
       --no-enable-log-requests
     shm_size: '8gb'
     deploy:

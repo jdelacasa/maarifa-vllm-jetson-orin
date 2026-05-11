@@ -1,0 +1,4 @@
+he lanzado una complacion de esto  a ver si rula...
+
+CUDA_VERSION=12.6 LSB_RELEASE=24.04 jetson-containers build pytorch:2.10 
+

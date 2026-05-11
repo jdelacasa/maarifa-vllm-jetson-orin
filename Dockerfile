@@ -26,10 +26,10 @@
 
 ARG BASE_IMAGE=pytorch:2.10-r36.4.tegra-aarch64-cu126-22.04
 ARG VLLM_REPO=https://github.com/vllm-project/vllm.git
-ARG VLLM_BRANCH=v0.19.1
-# FA commit pinado por vLLM 0.19.x (de cmake/external_projects/vllm_flash_attn.cmake)
+ARG VLLM_BRANCH=v0.20.2
+# FA commit pinado por vLLM 0.20.2 (de cmake/external_projects/vllm_flash_attn.cmake)
 # Si el build falla con "GIT_TAG mismatch", actualizar este valor.
-ARG FA_COMMIT=29210221863736a08f71a866459e368ad1ac4a95
+ARG FA_COMMIT=f5bc33cfc02c744d24a2e9d50e6db656de40611c
 
 FROM ${BASE_IMAGE}
 
@@ -152,9 +152,10 @@ RUN --mount=type=cache,target=/root/.cache/pip \
         "setuptools>=77.0.3,<81.0.0" \
         "setuptools-scm>=8.0" \
         "wheel" \
-        "jinja2"
+        "jinja2" \
+        "pybind11"
 
-# ── Compilar e instalar vLLM 0.19.1 (~2-3 h) ─────────────────
+# ── Compilar e instalar vLLM 0.20.2 (~2-3 h) ─────────────────
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --no-build-isolation .
 
@@ -170,30 +171,36 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # Si no hay wheel aarch64, flashinfer cae en modo JIT:
 # los kernels se compilan al primer uso (~30 s extra en primera petición).
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install "flashinfer-python==0.6.6" --no-deps \
+    pip install "flashinfer-python==0.6.8.post1" --no-deps \
         --index-url https://pypi.org/simple \
         --extra-index-url https://pypi.jetson-ai-lab.io/jp6/cu126 \
     && echo "[OK] flashinfer 0.6.6 instalado" \
-    || echo "[WARN] flashinfer 0.6.6 no disponible para aarch64 — se usará JIT mode"
+    || echo "[WARN] flashinfer 0.6.8.post1 no disponible para aarch64 — se usará JIT mode"
 
 # ── Parche torch fake_impl.py — torchvision 0.26 + torch 2.10 ──
 # torch 2.10.0 cambió _dispatch_has_kernel_for_dispatch_key: ahora lanza
 # RuntimeError si el op no existe en lugar de retornar False. torchvision
 # no lo contempla → crash al importar antes de que _torchvision.so cargue.
+# Usa regex para capturar la indentación real y evitar substring-match erróneo.
 RUN python3 - <<'PYEOF'
+import re
 path = '/opt/venv/lib/python3.10/site-packages/torch/_library/fake_impl.py'
-old = '        if torch._C._dispatch_has_kernel_for_dispatch_key(self.qualname, "Meta"):'
-new = ('        try:\n'
-       '            _hm = torch._C._dispatch_has_kernel_for_dispatch_key(self.qualname, "Meta")\n'
-       '        except RuntimeError:\n'
-       '            _hm = False\n'
-       '        if _hm:')
+target = 'if torch._C._dispatch_has_kernel_for_dispatch_key(self.qualname, "Meta"):'
 with open(path) as f:
     c = f.read()
-if old in c:
+m = re.search(r'^( +)' + re.escape(target), c, re.MULTILINE)
+if m:
+    indent = m.group(1)
+    inner = indent + '    '
+    old_line = indent + target
+    new_block = (f'{indent}try:\n'
+                 f'{inner}_hm = torch._C._dispatch_has_kernel_for_dispatch_key(self.qualname, "Meta")\n'
+                 f'{indent}except RuntimeError:\n'
+                 f'{inner}_hm = False\n'
+                 f'{indent}if _hm:')
     with open(path, 'w') as f:
-        f.write(c.replace(old, new))
-    print('[OK] fake_impl.py patched')
+        f.write(c.replace(old_line, new_block, 1))
+    print(f'[OK] fake_impl.py patched (indent={len(indent)})')
 elif '_hm' in c:
     print('[SKIP] fake_impl.py: ya parcheado')
 else:

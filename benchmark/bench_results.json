@@ -1,0 +1,198 @@
+[
+  {
+    "ctx": "tiny",
+    "ctx_tokens_approx": 50,
+    "concurrency": 1,
+    "wall_time_total": 6.27,
+    "median_ttft_s": 0.402,
+    "p90_ttft_s": 0.402,
+    "median_tps": 34.1,
+    "throughput_tok_s": 31.9,
+    "success_rate": 1.0,
+    "total_output_tokens": 200,
+    "requests": [
+      {
+        "ok": true,
+        "ttft_s": 0.402,
+        "total_s": 6.27,
+        "output_tokens": 200,
+        "tps": 34.1,
+        "error": ""
+      }
+    ]
+  },
+  {
+    "ctx": "tiny",
+    "ctx_tokens_approx": 50,
+    "concurrency": 2,
+    "wall_time_total": 7.85,
+    "median_ttft_s": 0.747,
+    "p90_ttft_s": 0.795,
+    "median_tps": 28.3,
+    "throughput_tok_s": 51.0,
+    "success_rate": 1.0,
+    "total_output_tokens": 400,
+    "requests": [
+      {
+        "ok": true,
+        "ttft_s": 0.795,
+        "total_s": 7.77,
+        "output_tokens": 200,
+        "tps": 28.7,
+        "error": ""
+      },
+      {
+        "ok": true,
+        "ttft_s": 0.7,
+        "total_s": 7.85,
+        "output_tokens": 200,
+        "tps": 28.0,
+        "error": ""
+      }
+    ]
+  },
+  {
+    "ctx": "tiny",
+    "ctx_tokens_approx": 50,
+    "concurrency": 4,
+    "wall_time_total": 7.85,
+    "median_ttft_s": 0.809,
+    "p90_ttft_s": 0.809,
+    "median_tps": 28.4,
+    "throughput_tok_s": 101.9,
+    "success_rate": 1.0,
+    "total_output_tokens": 800,
+    "requests": [
+      {
+        "ok": true,
+        "ttft_s": 0.809,
+        "total_s": 7.85,
+        "output_tokens": 200,
+        "tps": 28.4,
+        "error": ""
+      },
+      {
+        "ok": true,
+        "ttft_s": 0.809,
+        "total_s": 7.57,
+        "output_tokens": 200,
+        "tps": 29.6,
+        "error": ""
+      },
+      {
+        "ok": true,
+        "ttft_s": 0.808,
+        "total_s": 7.85,
+        "output_tokens": 200,
+        "tps": 28.4,
+        "error": ""
+      },
+      {
+        "ok": true,
+        "ttft_s": 0.717,
+        "total_s": 7.75,
+        "output_tokens": 200,
+        "tps": 28.4,
+        "error": ""
+      }
+    ]
+  },
+  {
+    "ctx": "small",
+    "ctx_tokens_approx": 500,
+    "concurrency": 1,
+    "wall_time_total": 6.47,
+    "median_ttft_s": 0.452,
+    "p90_ttft_s": 0.452,
+    "median_tps": 33.3,
+    "throughput_tok_s": 30.9,
+    "success_rate": 1.0,
+    "total_output_tokens": 200,
+    "requests": [
+      {
+        "ok": true,
+        "ttft_s": 0.452,
+        "total_s": 6.47,
+        "output_tokens": 200,
+        "tps": 33.3,
+        "error": ""
+      }
+    ]
+  },
+  {
+    "ctx": "small",
+    "ctx_tokens_approx": 500,
+    "concurrency": 2,
+    "wall_time_total": 7.79,
+    "median_ttft_s": 0.786,
+    "p90_ttft_s": 0.827,
+    "median_tps": 28.6,
+    "throughput_tok_s": 51.4,
+    "success_rate": 1.0,
+    "total_output_tokens": 400,
+    "requests": [
+      {
+        "ok": true,
+        "ttft_s": 0.827,
+        "total_s": 7.79,
+        "output_tokens": 200,
+        "tps": 28.7,
+        "error": ""
+      },
+      {
+        "ok": true,
+        "ttft_s": 0.744,
+        "total_s": 7.78,
+        "output_tokens": 200,
+        "tps": 28.4,
+        "error": ""
+      }
+    ]
+  },
+  {
+    "ctx": "small",
+    "ctx_tokens_approx": 500,
+    "concurrency": 4,
+    "wall_time_total": 8.89,
+    "median_ttft_s": 1.229,
+    "p90_ttft_s": 1.23,
+    "median_tps": 27.5,
+    "throughput_tok_s": 90.0,
+    "success_rate": 1.0,
+    "total_output_tokens": 800,
+    "requests": [
+      {
+        "ok": true,
+        "ttft_s": 1.23,
+        "total_s": 8.37,
+        "output_tokens": 200,
+        "tps": 28.0,
+        "error": ""
+      },
+      {
+        "ok": true,
+        "ttft_s": 1.13,
+        "total_s": 8.37,
+        "output_tokens": 200,
+        "tps": 27.6,
+        "error": ""
+      },
+      {
+        "ok": true,
+        "ttft_s": 1.229,
+        "total_s": 8.89,
+        "output_tokens": 200,
+        "tps": 26.1,
+        "error": ""
+      },
+      {
+        "ok": true,
+        "ttft_s": 1.228,
+        "total_s": 8.55,
+        "output_tokens": 200,
+        "tps": 27.3,
+        "error": ""
+      }
+    ]
+  }
+]

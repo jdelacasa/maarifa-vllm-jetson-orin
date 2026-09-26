@@ -24,6 +24,7 @@ from typing import Optional
 
 BASE_URL = "http://localhost:8001"
 MODEL = "palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4"
+REASONING_EFFORT: Optional[str] = None  # xhigh|medium|low, vía chat_template_kwargs (Qwen3.8+)
 
 # Texto de relleno en castellano para generar contextos largos (~4 chars/token)
 _FILLER = (
@@ -138,6 +139,9 @@ async def do_request(
         "stream": True,
         "stream_options": {"include_usage": True},
     }
+    if REASONING_EFFORT:
+        payload["chat_template_kwargs"] = {"reasoning_effort": REASONING_EFFORT}
+        payload["reasoning_effort"] = REASONING_EFFORT  # llama.cpp lo lee a nivel superior
 
     t0 = time.perf_counter()
     ttft: Optional[float] = None
@@ -179,7 +183,9 @@ async def do_request(
                 # El modelo usa reasoning-parser: los tokens salen en delta.reasoning
                 # (pensamiento) y luego en delta.content (respuesta final).
                 # TTFT se mide desde el primer token de cualquier tipo.
-                reasoning = (choices[0].get("delta") or {}).get("reasoning") or ""
+                # llama.cpp emite el pensamiento en delta.reasoning_content
+                delta = choices[0].get("delta") or {}
+                reasoning = delta.get("reasoning") or delta.get("reasoning_content") or ""
                 any_token = content or reasoning
 
                 if any_token and ttft is None:
@@ -352,7 +358,7 @@ def save_json(blocks: list[BlockResult], path: str):
 # ─── CLI ──────────────────────────────────────────────────────────────────────
 
 def main():
-    global BASE_URL
+    global BASE_URL, MODEL, REASONING_EFFORT
     parser = argparse.ArgumentParser(
         description="Benchmark vLLM Jetson AGX Orin — tokens/s por concurrencia y contexto",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -375,11 +381,17 @@ def main():
                         help="Deshabilitar razonamiento (chain-of-thought) durante el benchmark")
     parser.add_argument("--url", default=BASE_URL,
                         help="URL base del servidor vLLM")
+    parser.add_argument("--model", default=MODEL,
+                        help="Nombre/ID del modelo tal como lo expone el servidor vLLM")
+    parser.add_argument("--reasoning-effort", choices=["xhigh", "medium", "low"], default=None,
+                        help="Nivel de reasoning_effort (chat_template_kwargs) — Qwen3.8+")
     parser.add_argument("--output", default="benchmark/bench_results.json",
                         help="Fichero JSON donde guardar los resultados")
     args = parser.parse_args()
 
     BASE_URL = args.url
+    MODEL = args.model
+    REASONING_EFFORT = args.reasoning_effort
 
     print("═" * 84)
     print("vLLM Benchmark — Jetson AGX Orin 64GB")
@@ -390,6 +402,7 @@ def main():
     print(f"  Max tokens   : {args.max_tokens}")
     print(f"  Repeticiones : {args.repeats}")
     print(f"  No-think     : {args.no_think}")
+    print(f"  Reasoning    : {args.reasoning_effort or '(default servidor)'}")
     print("═" * 84 + "\n")
 
     blocks = asyncio.run(run_bench(

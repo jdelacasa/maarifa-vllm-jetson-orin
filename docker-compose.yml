@@ -1,10 +1,20 @@
 include:
 
   - models/qwen36-35b.yml
+  - models/qwen38-27b.yml
+  - models/bonsai2-27b.yml
 
 volumes:
   vllm-compile-cache:
   vllm-agents-compile-cache:
 
+
+## Ambos modelos usan el puerto 8001 y no caben juntos en la GPU: se levantan
+## uno a la vez con --profile. Sin --profile no arranca ningún servicio.
+##
+## docker compose --profile qwen36 up -d   # Qwen3.6-35B-A3B (MoE, actual)
+## docker compose --profile qwen38 up -d   # Qwen3.8-27B (dense, nuevo)
+##
+## Para bajar el que esté activo: docker compose --profile qwen36 down  (o qwen38)
 
 ## curl http://localhost:8001/v1/chat/completions  -H "Content-Type: application/json"   -d '{"model": "palmfuture/Qwen3.6-35B-A3B-GPTQ-Int4", "messages": [{"role": "user", "content": "Hello!"}]}'

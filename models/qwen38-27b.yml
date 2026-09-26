@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  vllm-qwen38:
+    profiles: ["qwen38"]
+    image: vllm/vllm-openai:latest  # post-JetPack R39.2/CUDA13.2: imagen genérica funciona sin parches sm_87 (vLLM 0.23.0)
+    container_name: qwen38-vllm
+    ports:
+      - "8001:8001"
+    environment:
+      - VLLM_MARLIN_USE_ATOMIC_ADD=1
+      - HF_HOME=/data/huggingface
+    # Si usas Jetson/NVIDIA, probablemente necesites habilitar la GPU:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: >
+      cyankiwi/Qwen3.8-27B-AWQ-INT4
+      --host 0.0.0.0
+      --port 8001
+      --dtype half
+      --gpu-memory-utilization 0.70
+      --max-model-len 80000
+      --max-num-batched-tokens 64000
+      --max-num-seqs 4
+      --speculative-config '{"method":"mtp","num_speculative_tokens":3}'
+      --limit-mm-per-prompt '{"image":4}'
+      --tool-call-parser qwen3_coder
+      --reasoning-parser qwen3
+      --enable-auto-tool-choice
+      --no-enable-log-requests
+    volumes:
+      - /home/jdelacasa/.cache/huggingface:/data/huggingface
+      - /home/jdelacasa/.cache/vllm:/root/.cache/vllm

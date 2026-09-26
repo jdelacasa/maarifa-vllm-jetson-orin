@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  llama-bonsai2:
+    profiles: ["bonsai2"]
+    image: bonsai2-llamacpp:prism-b10743
+    build:
+      context: ./bonsai
+    container_name: bonsai2-llama
+    ports:
+      - "8001:8001"   # mismo puerto que los perfiles vLLM: no levantar a la vez
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - /home/jdelacasa/.cache/bonsai:/models:ro
+    # PQ2_0 (7.2 GB, prefill más rápido). Alternativa más pequeña: Ternary-Bonsai-2-27B-PTQ1_0.gguf (5.9 GB)
+    # Muestreo de thinking-mode según model card. Dar -n/max_tokens generoso al cliente.
+    command: >
+      -m /models/Ternary-Bonsai-2-27B-PQ2_0.gguf
+      --mmproj /models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf
+      --alias Ternary-Bonsai-2-27B
+      --host 0.0.0.0
+      --port 8001
+      -ngl 99
+      -c 262144
+      -np 1
+      -fa on
+      --jinja
+      --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.05
